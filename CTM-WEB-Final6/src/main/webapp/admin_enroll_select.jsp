@@ -36,12 +36,13 @@
   <h2>Select a Tournament</h2>
   <p class="muted">If fixtures are already generated for a tournament, enrollment is locked. You can still open it to view teams.</p>
 
-  <% if (tournaments == null || tournaments.isEmpty()) { %>
-    <p>No tournaments found.</p>
-  <% } else {
-       for (Tournament t : tournaments) {
-         boolean locked = lockedIds.contains(t.getId());
-  %>
+    <% if (tournaments == null || tournaments.isEmpty()) { %>
+      <p>No tournaments found.</p>
+    <% } else {
+        for (Tournament t : tournaments) {
+          if (t == null) { continue; }
+          boolean locked = lockedIds.contains(t.getId());
+    %>
     <div class="row">
       <div>
         <b><%= t.getName() %></b> &nbsp; <span class="muted">(<%= t.getFormat() %>)</span>
@@ -51,7 +52,7 @@
         <a class="pill view" href="enroll?tid=<%= t.getId() %>">Open</a>
       </div>
     </div>
-  <% } } %>
+    <% } } %>
 </div>
 
 
