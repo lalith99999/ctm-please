@@ -273,6 +273,7 @@ public class TournamentDaoImpl implements TournamentDao {
                 e.printStackTrace();
             }
         }
+        } catch (SQLException e) { e.printStackTrace(); }
         return 0;
     }
 
