@@ -8,6 +8,7 @@
   response.setDateHeader("Expires",0);
 
   Tournament tour = (Tournament) request.getAttribute("tournament");
+  if (tour == null) { response.sendRedirect("enroll"); return; }
   List<TeamStanding> enrolled = (List<TeamStanding>) request.getAttribute("enrolled");
   List<Team> available = (List<Team>) request.getAttribute("available");
   Boolean locked = (Boolean) request.getAttribute("locked");
