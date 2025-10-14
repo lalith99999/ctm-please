@@ -171,6 +171,39 @@ public class TournamentDaoImpl implements TournamentDao {
                             rs.getInt("played")));
                 }
             }
+            return teams;
+        } catch (SQLException primary) {
+            if (!isMissingColumn(primary)) {
+                primary.printStackTrace();
+                return teams;
+            }
+        }
+
+        // Fallback for legacy schema without name/city columns in tournament_teams
+        String fallbackSql =
+                "SELECT tt.team_id, "
+              + "       t.name AS name, "
+              + "       t.city AS city, "
+              + "       NVL(tt.points, 0) AS points, "
+              + "       NVL(tt.nrr, 0) AS nrr, "
+              + "       NVL(tt.played, 0) AS played "
+              + "FROM tournament_teams tt "
+              + "JOIN teams t ON tt.team_id = t.team_id "
+              + "WHERE tt.tournament_id = ? "
+              + "ORDER BY tt.team_id";
+        try (PreparedStatement ps = DaoUtil.getMyPreparedStatement(fallbackSql)) {
+            ps.setLong(1, tournamentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    teams.add(new TeamStanding(
+                            rs.getLong("team_id"),
+                            rs.getString("name"),
+                            rs.getString("city"),
+                            rs.getInt("points"),
+                            rs.getDouble("nrr"),
+                            rs.getInt("played")));
+                }
+            }
         } catch (SQLException e) { e.printStackTrace(); }
         return teams;
     }
@@ -182,6 +215,21 @@ public class TournamentDaoImpl implements TournamentDao {
                 "INSERT INTO tournament_teams (tournament_id, team_id, name, city, points, nrr, played) "
               + "SELECT ?, team_id, name, city, 0, 0, 0 FROM teams WHERE team_id = ?";
         try (PreparedStatement ps = DaoUtil.getMyPreparedStatement(sql)) {
+            ps.setLong(1, tournamentId);
+            ps.setLong(2, teamId);
+            ps.executeUpdate();
+            return;
+        } catch (SQLException primary) {
+            if (!isMissingColumn(primary)) {
+                primary.printStackTrace();
+                return;
+            }
+        }
+
+        String fallbackSql =
+                "INSERT INTO tournament_teams (tournament_id, team_id, points, nrr, played) "
+              + "VALUES (?, ?, 0, 0, 0)";
+        try (PreparedStatement ps = DaoUtil.getMyPreparedStatement(fallbackSql)) {
             ps.setLong(1, tournamentId);
             ps.setLong(2, teamId);
             ps.executeUpdate();
@@ -220,6 +268,11 @@ public class TournamentDaoImpl implements TournamentDao {
             ps.setLong(3, tournamentId);
             ps.setLong(4, teamId);
             return ps.executeUpdate();
+        } catch (SQLException e) {
+            if (!isMissingColumn(e)) {
+                e.printStackTrace();
+            }
+        }
         } catch (SQLException e) { e.printStackTrace(); }
         return 0;
     }
@@ -247,5 +300,9 @@ public class TournamentDaoImpl implements TournamentDao {
             }
         } catch (SQLException e) { e.printStackTrace(); }
         return 0;
+    }
+
+    private boolean isMissingColumn(SQLException e) {
+        return e != null && e.getErrorCode() == 904;
     }
 }
